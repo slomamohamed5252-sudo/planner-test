@@ -408,10 +408,11 @@ document.getElementById('updateLibBtn').onclick = () => {
 };
 
 // ==========================================
-// برمجة خطة الشهر (مع المزامنة الذكية لجدول اليوم)
+// برمجة خطة الشهر (مع التمرير التلقائي وتثبيت وقت 6 صباحاً)
 // ==========================================
 function renderMonthly() { 
     const container = document.getElementById('monthlyContainer'); 
+    if(!container) return;
     container.innerHTML = ''; 
     const mNames = currentLang === 'ar' ? monthNamesAr : monthNamesEn; 
     document.getElementById('monthlyTitle').innerText = `${mNames[currentMonthView]} ${currentYearView}`; 
@@ -419,66 +420,76 @@ function renderMonthly() {
     let dayText = currentLang === 'ar' ? 'اليوم:' : 'Day:'; 
     let placeholderText = currentLang === 'ar' ? 'اكتب خطتك (الروابط تعمل تلقائياً)' : 'Type your plan (links work automatically)'; 
     
+    // اكتشاف تاريخ اليوم الواقعي لتمييزه
+    const todayObj = new Date();
+    const isCurrentMonth = (todayObj.getMonth() === currentMonthView && todayObj.getFullYear() === currentYearView);
+    const todayDate = todayObj.getDate();
+
     for(let i = 1; i <= daysInMonth; i++) { 
         let storageKey = `PlannerMonthData_${currentYearView}_${currentMonthView}_${i}`; 
         let savedText = localStorage.getItem(storageKey) || ""; 
         const dayDiv = document.createElement('div'); 
         dayDiv.className = 'month-day-card'; 
-        // تمت إضافة data-day لمعرفة رقم اليوم برمجياً
-        dayDiv.innerHTML = `<div class="month-day-header"><span>${dayText} ${i} ${mNames[currentMonthView]}</span></div><textarea class="multi-line-input no-print" rows="3" data-key="${storageKey}" data-day="${i}" placeholder="${placeholderText}">${savedText}</textarea><div class="render-area">${linkify(savedText)}</div>`; 
+        
+        // تمييز كارت اليوم الحالي وإعطاؤه ID للنزول إليه
+        if (isCurrentMonth && i === todayDate) {
+            dayDiv.id = 'todayMonthCard';
+            dayDiv.style.border = '2px solid var(--primary)';
+        }
+
+        let isTodayText = (isCurrentMonth && i === todayDate) ? (currentLang === 'ar' ? '(اليوم)' : '(Today)') : '';
+
+        dayDiv.innerHTML = `<div class="month-day-header"><span>${dayText} ${i} ${mNames[currentMonthView]} <b style="color:var(--primary);">${isTodayText}</b></span></div><textarea class="multi-line-input no-print" rows="3" data-key="${storageKey}" data-day="${i}" placeholder="${placeholderText}">${savedText}</textarea><div class="render-area">${linkify(savedText)}</div>`; 
         container.appendChild(dayDiv); 
     } 
     
     document.querySelectorAll('.multi-line-input').forEach(ta => { 
-        ta.oninput = e => { 
-            e.target.nextElementSibling.innerHTML = linkify(e.target.value); 
-        }; 
+        ta.oninput = e => { e.target.nextElementSibling.innerHTML = linkify(e.target.value); }; 
         ta.onchange = e => { 
             let newText = e.target.value;
             localStorage.setItem(e.target.dataset.key, newText); 
 
-            // --- بداية كود المزامنة السحرية مع جدول اليوم ---
-            // 1. تحويل التاريخ إلى صيغة المهام (YYYY-MM-DD)
             let dayNum = parseInt(e.target.getAttribute('data-day'));
             let dStr = String(dayNum).padStart(2, '0');
             let mStr = String(currentMonthView + 1).padStart(2, '0');
             let targetDateStr = `${currentYearView}-${mStr}-${dStr}`;
 
-            // 2. البحث عن مهمة مضافة مسبقاً من خطة الشهر (باستخدام العلامة السرية isMonthly)
             let existingTaskIndex = tasks.findIndex(t => t.date === targetDateStr && t.isMonthly === true);
 
             if (newText.trim() === "") {
-                // إذا مسح المستخدم خطة الشهر، نحذف المهمة من اليوم
-                if (existingTaskIndex !== -1) {
-                    tasks.splice(existingTaskIndex, 1);
-                }
+                if (existingTaskIndex !== -1) tasks.splice(existingTaskIndex, 1);
             } else {
-                // تجميل النص بإضافة دبوس صغير لتمييزه في جدول اليوم
                 let taskLabel = (currentLang === 'ar' ? '📌 خطة الشهر: ' : '📌 Month Plan: ') + newText.trim();
-                
                 if (existingTaskIndex !== -1) {
-                    // إذا كانت المهمة موجودة، نحدث نصها فقط (ونحافظ على حالة إنجازها)
                     tasks[existingTaskIndex].text = taskLabel;
                 } else {
-                    // إنشاء مهمة جديدة في جدول اليوم
                     tasks.push({
                         id: Date.now(),
                         text: taskLabel,
                         date: targetDateStr,
+                        time: "06:00", // التعديل: تثبيت الوقت الافتراضي 6 صباحاً
                         completed: false,
-                        isMonthly: true // العلامة السرية
+                        isMonthly: true 
                     });
                 }
             }
 
             saveAll(); 
-            // تحديث جدول اليوم فوراً في الشاشة إذا كان المستخدم يراه الآن
             if (typeof currentDailyDate !== 'undefined' && currentDailyDate === targetDateStr && typeof renderDaily === 'function') {
                 renderDaily();
             }
-            // --- نهاية كود المزامنة ---
         }; 
     }); 
+
+    // النزول التلقائي (Scroll) إلى يومنا الحالي ليكون في بداية الشاشة
+    if (isCurrentMonth) {
+        setTimeout(() => {
+            let todayCard = document.getElementById('todayMonthCard');
+            if (todayCard) {
+                todayCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300); // تأخير بسيط لضمان تحميل الشاشة
+    }
 }
 
 let pomTimer, targetTime = 0, pomTimeLeft = 25 * 60, isPomRunning = false, pomMode = 'work', workDuration = 25;
@@ -566,7 +577,7 @@ function initPomodoro() {
 }
 
 // ==========================================
-// برمجة المشاريع Kanban (مُحدثة لدعم الأقسام الفرعية)
+// برمجة المشاريع Kanban (مع الأقسام الفرعية وأزرار النقل)
 // ==========================================
 function renderKanban() {
     ['todo', 'inprogress', 'done'].forEach(col => {
@@ -574,7 +585,7 @@ function renderKanban() {
         if(!container) return;
         
         container.innerHTML = kanbanTasks[col].map(i => {
-            // رسم الأقسام الفرعية إذا كانت موجودة
+            // رسم الأقسام الفرعية
             let subs = i.subtasks || [];
             let subsHTML = subs.map((sub, idx) => `
                 <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding: 5px; background: var(--bg-main); border-radius: 4px;">
@@ -586,10 +597,12 @@ function renderKanban() {
             return `<div class="kb-card" draggable="true" ondragstart="drag(event, ${i.id}, '${col}')" style="cursor:grab; border-right: 4px solid var(--primary);">
                 <div style="display:flex; justify-content:space-between; align-items: flex-start; margin-bottom:5px;">
                     <strong style="font-size: 1rem; flex:1;">${i.text}</strong>
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; align-items: center;">
+                        <button onclick="moveKb(${i.id}, '${col}', -1)" class="icon-btn no-print" style="color:var(--text-main);" title="نقل للسابق"><i class="fa-solid fa-arrow-right"></i></button>
                         <button onclick="addSubtask(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--primary);" title="إضافة قسم فرعي"><i class="fa-solid fa-plus"></i></button>
                         <button onclick="editKb(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--text-muted);" title="تعديل"><i class="fa-solid fa-pen"></i></button>
                         <button onclick="delKb(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--danger);" title="حذف المشروع"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="moveKb(${i.id}, '${col}', 1)" class="icon-btn no-print" style="color:var(--text-main);" title="نقل للتالي"><i class="fa-solid fa-arrow-left"></i></button>
                     </div>
                 </div>
                 <div style="margin-top: 10px;">
@@ -599,23 +612,6 @@ function renderKanban() {
         }).join('');
     });
 }
-
-// إضافة ونقل وحذف المشاريع
-window.addKanbanItem = () => { const inp = document.getElementById('newKbItem'); if(inp.value.trim()) { kanbanTasks.todo.push({id:Date.now(), text:inp.value.trim(), subtasks: []}); inp.value = ''; saveAll(); renderKanban(); } };
-window.delKb = (id, c) => { kanbanTasks[c] = kanbanTasks[c].filter(i => i.id !== id); saveAll(); renderKanban(); };
-window.moveKb = (id, c, d) => { const cols=['todo','inprogress','done']; let idx=cols.indexOf(c), n=idx+d; if(n>=0 && n<cols.length){ let i=kanbanTasks[c].find(x=>x.id===id); kanbanTasks[c]=kanbanTasks[c].filter(x=>x.id!==id); kanbanTasks[cols[n]].push(i); saveAll(); renderKanban(); } };
-window.drag = (ev, id, col) => { ev.dataTransfer.setData("id", id); ev.dataTransfer.setData("col", col); };
-window.allowDrop = ev => ev.preventDefault();
-window.drop = ev => { ev.preventDefault(); let tc = ev.target.closest('.kanban-items').getAttribute('data-status'), id = parseInt(ev.dataTransfer.getData("id")), sc = ev.dataTransfer.getData("col"); if(sc && tc && sc!==tc){ let i=kanbanTasks[sc].find(x=>x.id===id); kanbanTasks[sc]=kanbanTasks[sc].filter(x=>x.id!==id); kanbanTasks[tc].push(i); saveAll(); renderKanban(); } };
-
-// دوال الأقسام الفرعية (الجديدة)
-window.addSubtask = (id, col) => { let text = prompt(currentLang === 'ar' ? 'أدخل اسم القسم/المهمة الفرعية:' : 'Enter subtask name:'); if(text && text.trim()) { let task = kanbanTasks[col].find(t => t.id === id); if(!task.subtasks) task.subtasks = []; task.subtasks.push({text: text.trim(), done: false}); saveAll(); renderKanban(); } };
-window.toggleSubtask = (id, col, subIdx) => { let task = kanbanTasks[col].find(t => t.id === id); task.subtasks[subIdx].done = !task.subtasks[subIdx].done; saveAll(); renderKanban(); };
-
-// كود التعديل (القديم والآمن)
-window.editKb = (id, col) => { let k = kanbanTasks[col].find(x => x.id === id); if(!k) return; document.getElementById('editKbId').value = k.id; document.getElementById('editKbCol').value = col; document.getElementById('editKbText').value = k.text; document.getElementById('editKbModal').classList.add('show'); };
-document.getElementById('updateKbBtn').onclick = () => { let id = parseInt(document.getElementById('editKbId').value); let col = document.getElementById('editKbCol').value; let k = kanbanTasks[col].find(x => x.id === id); if(k) { k.text = document.getElementById('editKbText').value; saveAll(); renderKanban(); document.getElementById('editKbModal').classList.remove('show'); } };
-
 function renderDashboard() { let dashClearedStr = localStorage.getItem('fp_dash_cleared'); let activeTasks = (dashClearedStr === currentTodayStr) ? [] : tasks.filter(t => t.date === currentTodayStr); let completed = activeTasks.filter(t => t.completed).length; document.getElementById('dashTasks').innerText = `${completed} / ${activeTasks.length}`; let tHC = 0; let dHC = 0; habits.forEach(h => { for(let i=1; i<=30; i++) { tHC++; if(h.days[`${currentYearView}-${currentMonthView}-${i}`]) dHC++; } }); document.getElementById('dashHabits').innerText = `${tHC === 0 ? 0 : Math.round((dHC/tHC)*100)}%`; let balance = finances.reduce((acc, curr) => curr.type === 'income' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0); document.getElementById('dashBalance').innerText = `${balance}`; let resetDate = localStorage.getItem('fp_stats_reset') || "2000-01-01"; const ctx = document.getElementById('tasksChart').getContext('2d'); if(myChart) myChart.destroy(); let labels = []; let dataDone = []; let dataPending = []; for(let i=6; i>=0; i--) { let d = new Date(); d.setDate(d.getDate() - i); let dateStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; labels.push(d.toLocaleDateString(currentLang==='ar'?'ar-EG':'en-US', {weekday: 'short'})); let dayTasks = tasks.filter(t => t.date === dateStr && t.date >= resetDate); dataDone.push(dayTasks.filter(t => t.completed).length); dataPending.push(dayTasks.filter(t => !t.completed).length); } let primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#25D366'; myChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [ { label: i18n[currentLang].chart_done, data: dataDone, backgroundColor: primaryColor }, { label: i18n[currentLang].chart_pend, data: dataPending, backgroundColor: '#ef4444' } ] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: {stepSize: 1} } } } }); }
 function renderFinance() { const container = document.getElementById('financeContainer'); let inc = 0, exp = 0; let html = finances.sort((a,b) => new Date(b.date) - new Date(a.date)).map(f => { if(f.type === 'income') inc += Number(f.amount); else exp += Number(f.amount); let icon = f.type === 'income' ? '<i class="fa-solid fa-arrow-trend-up"></i>' : '<i class="fa-solid fa-arrow-trend-down"></i>'; return `<div class="fin-item" style="cursor:pointer;" onclick="editFin(${f.id})"><div><small>${f.date}</small><br><b>${f.desc}</b></div><div style="display:flex; align-items:center; gap:15px;"><span class="fin-amt ${f.type === 'income' ? 'inc' : 'exp'}">${icon} ${f.amount}</span><button class="icon-btn no-print" onclick="event.stopPropagation(); delFin(${f.id})"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join(''); document.getElementById('totalIncome').innerText = inc; document.getElementById('totalExpense').innerText = exp; document.getElementById('netBalance').innerText = inc - exp; container.innerHTML = html || `<p style="text-align:center; color:var(--text-muted);">${currentLang==='ar'?'لا توجد معاملات.':'No transactions yet.'}</p>`; }
 document.getElementById('saveFinBtn').onclick = () => { let desc = document.getElementById('finDesc').value; let amt = document.getElementById('finAmount').value; if(!desc || !amt) return; finances.push({ id: Date.now(), desc: desc, amount: amt, type: document.getElementById('finType').value, date: document.getElementById('finDate').value }); saveAll(); document.getElementById('financeModal').classList.remove('show'); renderFinance(); renderDashboard(); };
