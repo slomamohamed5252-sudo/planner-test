@@ -482,17 +482,86 @@ function renderMonthly() {
 }
 
 let pomTimer, targetTime = 0, pomTimeLeft = 25 * 60, isPomRunning = false, pomMode = 'work', workDuration = 25;
+// ==========================================
+// برمجة مؤقت التركيز (مع فك حظر الصوت الشامل لجميع الأجهزة)
+// ==========================================
+let pomTimer, targetTime = 0, pomTimeLeft = 25 * 60, isPomRunning = false, pomMode = 'work', workDuration = 25;
+
 function initPomodoro() { 
-    const d = document.getElementById('timerDisplay'); const wd = document.getElementById('pomWorkDuration'); const alarm = document.getElementById('pomAlarmSound'); const stopBtn = document.getElementById('stopAlarmBtn'); const startBtn = document.getElementById('pomStart'); const pauseBtn = document.getElementById('pomPause');
+    const d = document.getElementById('timerDisplay'); 
+    const wd = document.getElementById('pomWorkDuration'); 
+    const alarm = document.getElementById('pomAlarmSound'); 
+    const stopBtn = document.getElementById('stopAlarmBtn'); 
+    const startBtn = document.getElementById('pomStart'); 
+    const pauseBtn = document.getElementById('pomPause');
+
+    // --- بداية كود فك حظر الصوت الشامل (للموبايل والماك) ---
+    const unlockAudio = () => {
+        if(alarm) {
+            alarm.load(); // إجبار المتصفح على سحب ملف الصوت
+            alarm.volume = 1.0;
+            alarm.play().then(() => {
+                alarm.pause();
+                alarm.currentTime = 0;
+            }).catch(e => { /* تجاهل الخطأ الصامت */ });
+        }
+        // إزالة مستمع الحدث بعد أول لمسة لعدم إرهاق التطبيق
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('click', unlockAudio);
+    };
+    // ربط فك الحظر بأول لمسة أو نقرة في أي مكان بالتطبيق
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener('click', unlockAudio, { once: true });
+    // --- نهاية كود فك الحظر ---
+
     const updateTimeDisplay = () => { d.innerText = `${Math.floor(pomTimeLeft/60).toString().padStart(2,'0')}:${(pomTimeLeft%60).toString().padStart(2,'0')}`; }; 
     document.getElementById('pomMinus').onclick = () => { if(!isPomRunning && workDuration > 15) { workDuration -= 5; if(pomMode==='work'){ pomTimeLeft = workDuration*60; updateTimeDisplay();} wd.innerText = workDuration; } }; 
     document.getElementById('pomPlus').onclick = () => { if(!isPomRunning && workDuration < 60) { workDuration += 5; if(pomMode==='work'){ pomTimeLeft = workDuration*60; updateTimeDisplay();} wd.innerText = workDuration; } }; 
-    const setMode = (m, mins) => { clearInterval(pomTimer); isPomRunning=false; pomMode=m; pomTimeLeft=mins*60; updateTimeDisplay(); document.getElementById('pomWork').classList.toggle('active', m==='work'); document.getElementById('pomBreak').classList.toggle('active', m==='break'); startBtn.style.display = 'inline-flex'; pauseBtn.style.display = 'inline-flex'; stopBtn.style.display = 'none'; alarm.pause(); alarm.currentTime = 0; }; 
-    document.getElementById('pomWork').onclick = () => setMode('work', workDuration); document.getElementById('pomBreak').onclick = () => setMode('break', 5); 
-    startBtn.onclick = () => { if(isPomRunning) return; alarm.play().then(()=>alarm.pause()).catch(e=>{}); isPomRunning = true; targetTime = Date.now() + (pomTimeLeft * 1000); pomTimer = setInterval(() => { let remaining = Math.round((targetTime - Date.now()) / 1000); if(remaining <= 0) { clearInterval(pomTimer); isPomRunning=false; pomTimeLeft=0; updateTimeDisplay(); alarm.play(); startBtn.style.display = 'none'; pauseBtn.style.display = 'none'; stopBtn.style.display = 'inline-flex'; } else { pomTimeLeft = remaining; updateTimeDisplay(); } }, 1000); }; 
+    
+    const setMode = (m, mins) => { 
+        clearInterval(pomTimer); isPomRunning=false; pomMode=m; pomTimeLeft=mins*60; updateTimeDisplay(); 
+        document.getElementById('pomWork').classList.toggle('active', m==='work'); 
+        document.getElementById('pomBreak').classList.toggle('active', m==='break'); 
+        startBtn.style.display = 'inline-flex'; pauseBtn.style.display = 'inline-flex'; stopBtn.style.display = 'none'; 
+        if(alarm) { alarm.pause(); alarm.currentTime = 0; }
+    }; 
+    
+    document.getElementById('pomWork').onclick = () => setMode('work', workDuration); 
+    document.getElementById('pomBreak').onclick = () => setMode('break', 5); 
+    
+    startBtn.onclick = () => { 
+        if(isPomRunning) return; 
+        
+        // محاولة إضافية لفك الحظر عند الضغط على "ابدأ" كإجراء احتياطي
+        if(alarm) { alarm.play().then(()=>alarm.pause()).catch(e=>{}); }
+        
+        isPomRunning = true; 
+        targetTime = Date.now() + (pomTimeLeft * 1000); 
+        pomTimer = setInterval(() => { 
+            let remaining = Math.round((targetTime - Date.now()) / 1000); 
+            if(remaining <= 0) { 
+                clearInterval(pomTimer); 
+                isPomRunning=false; 
+                pomTimeLeft=0; 
+                updateTimeDisplay(); 
+                
+                // تشغيل الصوت بقوة عند انتهاء الوقت
+                if(alarm) { alarm.currentTime = 0; alarm.play().catch(e=>console.log("Audio Play Blocked:", e)); }
+                
+                startBtn.style.display = 'none'; 
+                pauseBtn.style.display = 'none'; 
+                stopBtn.style.display = 'inline-flex'; 
+            } else { 
+                pomTimeLeft = remaining; 
+                updateTimeDisplay(); 
+            } 
+        }, 1000); 
+    }; 
+    
     pauseBtn.onclick = () => { clearInterval(pomTimer); isPomRunning=false; }; 
     document.getElementById('pomReset').onclick = () => setMode(pomMode, pomMode==='work'?workDuration:5); 
-    stopBtn.onclick = () => { alarm.pause(); alarm.currentTime = 0; setMode(pomMode === 'work' ? 'break' : 'work', pomMode === 'work' ? 5 : workDuration); };
+    stopBtn.onclick = () => { if(alarm){ alarm.pause(); alarm.currentTime = 0; } setMode(pomMode === 'work' ? 'break' : 'work', pomMode === 'work' ? 5 : workDuration); };
+    
     updateTimeDisplay(); 
 }
 
