@@ -492,7 +492,7 @@ function renderMonthly() {
     }
 }
 
-let pomTimer, targetTime = 0, pomTimeLeft = 25 * 60, isPomRunning = false, pomMode = 'work', workDuration = 25;
+
 // ==========================================
 // برمجة مؤقت التركيز (مع فك حظر الصوت الشامل لجميع الأجهزة)
 // ==========================================
