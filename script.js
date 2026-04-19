@@ -408,7 +408,7 @@ document.getElementById('updateLibBtn').onclick = () => {
 };
 
 // ==========================================
-// برمجة خطة الشهر (مع التمرير التلقائي وتثبيت وقت 6 صباحاً)
+// برمجة خطة الشهر (المزامنة الاحترافية مع جدول اليوم)
 // ==========================================
 function renderMonthly() { 
     const container = document.getElementById('monthlyContainer'); 
@@ -461,13 +461,14 @@ function renderMonthly() {
             } else {
                 let taskLabel = (currentLang === 'ar' ? '📌 خطة الشهر: ' : '📌 Month Plan: ') + newText.trim();
                 if (existingTaskIndex !== -1) {
-                    tasks[existingTaskIndex].text = taskLabel;
+                    // التعديل: استخدام title لتتوافق مع جدول اليوم
+                    tasks[existingTaskIndex].title = taskLabel;
                 } else {
                     tasks.push({
                         id: Date.now(),
-                        text: taskLabel,
+                        title: taskLabel, // التعديل: استخدام title
                         date: targetDateStr,
-                        time: "06:00", // التعديل: تثبيت الوقت الافتراضي 6 صباحاً
+                        hour: 6, // التعديل: استخدام hour ورقم 6
                         completed: false,
                         isMonthly: true 
                     });
@@ -577,7 +578,7 @@ function initPomodoro() {
 }
 
 // ==========================================
-// برمجة المشاريع Kanban (مع الأقسام الفرعية وأزرار النقل)
+// برمجة المشاريع Kanban (مع الأقسام الفرعية، التعديل، والحذف)
 // ==========================================
 function renderKanban() {
     ['todo', 'inprogress', 'done'].forEach(col => {
@@ -585,12 +586,15 @@ function renderKanban() {
         if(!container) return;
         
         container.innerHTML = kanbanTasks[col].map(i => {
-            // رسم الأقسام الفرعية
             let subs = i.subtasks || [];
+            
+            // رسم الأقسام الفرعية مع أزرار التعديل والحذف الجديدة
             let subsHTML = subs.map((sub, idx) => `
-                <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding: 5px; background: var(--bg-main); border-radius: 4px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding: 5px; background: var(--bg-main); border-radius: 4px; border: 1px solid var(--border-color);">
                     <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleSubtask(${i.id}, '${col}', ${idx})" style="cursor:pointer; width: 15px; height: 15px;">
-                    <span style="text-decoration: ${sub.done ? 'line-through' : 'none'}; color: ${sub.done ? 'var(--text-muted)' : 'var(--text-main)'}; font-size: 0.9rem;">${sub.text}</span>
+                    <span style="flex:1; text-decoration: ${sub.done ? 'line-through' : 'none'}; color: ${sub.done ? 'var(--text-muted)' : 'var(--text-main)'}; font-size: 0.9rem; white-space: pre-wrap; word-break: break-word;">${sub.text}</span>
+                    <button onclick="editSubtask(${i.id}, '${col}', ${idx})" class="icon-btn no-print" style="font-size:0.8rem; color:var(--text-muted);" title="تعديل الفرعي"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="delSubtask(${i.id}, '${col}', ${idx})" class="icon-btn no-print" style="font-size:0.8rem; color:var(--danger);" title="حذف الفرعي"><i class="fa-solid fa-trash"></i></button>
                 </div>
             `).join('');
 
@@ -600,7 +604,7 @@ function renderKanban() {
                     <div style="display:flex; gap:8px; align-items: center;">
                         <button onclick="moveKb(${i.id}, '${col}', -1)" class="icon-btn no-print" style="color:var(--text-main);" title="نقل للسابق"><i class="fa-solid fa-arrow-right"></i></button>
                         <button onclick="addSubtask(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--primary);" title="إضافة قسم فرعي"><i class="fa-solid fa-plus"></i></button>
-                        <button onclick="editKb(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--text-muted);" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="editKb(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--text-muted);" title="تعديل المشروع"><i class="fa-solid fa-pen"></i></button>
                         <button onclick="delKb(${i.id}, '${col}')" class="icon-btn no-print" style="color:var(--danger);" title="حذف المشروع"><i class="fa-solid fa-trash"></i></button>
                         <button onclick="moveKb(${i.id}, '${col}', 1)" class="icon-btn no-print" style="color:var(--text-main);" title="نقل للتالي"><i class="fa-solid fa-arrow-left"></i></button>
                     </div>
@@ -612,6 +616,88 @@ function renderKanban() {
         }).join('');
     });
 }
+
+// 1. إضافة، حذف، ونقل المشاريع الرئيسية
+window.addKanbanItem = () => { 
+    const inp = document.getElementById('newKbItem'); 
+    if(inp && inp.value.trim()) { 
+        kanbanTasks.todo.push({id: Date.now(), text: inp.value.trim(), subtasks: []}); 
+        inp.value = ''; saveAll(); renderKanban(); 
+    } 
+};
+window.delKb = (id, c) => { kanbanTasks[c] = kanbanTasks[c].filter(i => i.id !== id); saveAll(); renderKanban(); };
+window.moveKb = (id, c, d) => { 
+    const cols=['todo','inprogress','done']; 
+    let idx=cols.indexOf(c), n=idx+d; 
+    if(n>=0 && n<cols.length){ 
+        let i=kanbanTasks[c].find(x=>x.id===id); 
+        kanbanTasks[c]=kanbanTasks[c].filter(x=>x.id!==id); 
+        kanbanTasks[cols[n]].push(i); saveAll(); renderKanban(); 
+    } 
+};
+
+// 2. كود السحب والإفلات (Drag & Drop)
+window.drag = (ev, id, col) => { ev.dataTransfer.setData("id", id); ev.dataTransfer.setData("col", col); };
+window.allowDrop = ev => ev.preventDefault();
+window.drop = ev => { 
+    ev.preventDefault(); 
+    let tc = ev.target.closest('.kanban-items').getAttribute('data-status');
+    let id = parseInt(ev.dataTransfer.getData("id"));
+    let sc = ev.dataTransfer.getData("col");
+    if(sc && tc && sc!==tc){ 
+        let i=kanbanTasks[sc].find(x=>x.id===id); 
+        kanbanTasks[sc]=kanbanTasks[sc].filter(x=>x.id!==id); 
+        kanbanTasks[tc].push(i); saveAll(); renderKanban(); 
+    } 
+};
+
+// 3. تعديل المشروع الرئيسي
+window.editKb = (id, col) => { 
+    let k = kanbanTasks[col].find(x => x.id === id); if(!k) return; 
+    document.getElementById('editKbId').value = k.id; 
+    document.getElementById('editKbCol').value = col; 
+    document.getElementById('editKbText').value = k.text; 
+    document.getElementById('editKbModal').classList.add('show'); 
+};
+document.getElementById('updateKbBtn').onclick = () => { 
+    let id = parseInt(document.getElementById('editKbId').value); 
+    let col = document.getElementById('editKbCol').value; 
+    let k = kanbanTasks[col].find(x => x.id === id); 
+    if(k) { k.text = document.getElementById('editKbText').value; saveAll(); renderKanban(); document.getElementById('editKbModal').classList.remove('show'); } 
+};
+
+// 4. العمليات على الأقسام الفرعية (إضافة، تحديد، تعديل، حذف)
+window.addSubtask = (id, col) => {
+    let text = prompt(currentLang === 'ar' ? 'أدخل اسم القسم/المهمة الفرعية:' : 'Enter subtask name:');
+    if(text && text.trim()) {
+        let task = kanbanTasks[col].find(t => t.id === id);
+        if(!task.subtasks) task.subtasks = [];
+        task.subtasks.push({text: text.trim(), done: false});
+        saveAll(); renderKanban();
+    }
+};
+window.toggleSubtask = (id, col, subIdx) => {
+    let task = kanbanTasks[col].find(t => t.id === id);
+    task.subtasks[subIdx].done = !task.subtasks[subIdx].done;
+    saveAll(); renderKanban();
+};
+window.editSubtask = (id, col, subIdx) => {
+    let task = kanbanTasks[col].find(t => t.id === id);
+    let oldText = task.subtasks[subIdx].text;
+    let newText = prompt(currentLang === 'ar' ? 'تعديل القسم الفرعي:' : 'Edit subtask:', oldText);
+    if(newText && newText.trim()) {
+        task.subtasks[subIdx].text = newText.trim();
+        saveAll(); renderKanban();
+    }
+};
+window.delSubtask = (id, col, subIdx) => {
+    if(confirm(currentLang === 'ar' ? 'هل أنت متأكد من حذف هذا القسم الفرعي؟' : 'Are you sure you want to delete this subtask?')) {
+        let task = kanbanTasks[col].find(t => t.id === id);
+        task.subtasks.splice(subIdx, 1);
+        saveAll(); renderKanban();
+    }
+};
+
 function renderDashboard() { let dashClearedStr = localStorage.getItem('fp_dash_cleared'); let activeTasks = (dashClearedStr === currentTodayStr) ? [] : tasks.filter(t => t.date === currentTodayStr); let completed = activeTasks.filter(t => t.completed).length; document.getElementById('dashTasks').innerText = `${completed} / ${activeTasks.length}`; let tHC = 0; let dHC = 0; habits.forEach(h => { for(let i=1; i<=30; i++) { tHC++; if(h.days[`${currentYearView}-${currentMonthView}-${i}`]) dHC++; } }); document.getElementById('dashHabits').innerText = `${tHC === 0 ? 0 : Math.round((dHC/tHC)*100)}%`; let balance = finances.reduce((acc, curr) => curr.type === 'income' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0); document.getElementById('dashBalance').innerText = `${balance}`; let resetDate = localStorage.getItem('fp_stats_reset') || "2000-01-01"; const ctx = document.getElementById('tasksChart').getContext('2d'); if(myChart) myChart.destroy(); let labels = []; let dataDone = []; let dataPending = []; for(let i=6; i>=0; i--) { let d = new Date(); d.setDate(d.getDate() - i); let dateStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; labels.push(d.toLocaleDateString(currentLang==='ar'?'ar-EG':'en-US', {weekday: 'short'})); let dayTasks = tasks.filter(t => t.date === dateStr && t.date >= resetDate); dataDone.push(dayTasks.filter(t => t.completed).length); dataPending.push(dayTasks.filter(t => !t.completed).length); } let primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#25D366'; myChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [ { label: i18n[currentLang].chart_done, data: dataDone, backgroundColor: primaryColor }, { label: i18n[currentLang].chart_pend, data: dataPending, backgroundColor: '#ef4444' } ] }, options: { responsive: true, scales: { y: { beginAtZero: true, ticks: {stepSize: 1} } } } }); }
 function renderFinance() { const container = document.getElementById('financeContainer'); let inc = 0, exp = 0; let html = finances.sort((a,b) => new Date(b.date) - new Date(a.date)).map(f => { if(f.type === 'income') inc += Number(f.amount); else exp += Number(f.amount); let icon = f.type === 'income' ? '<i class="fa-solid fa-arrow-trend-up"></i>' : '<i class="fa-solid fa-arrow-trend-down"></i>'; return `<div class="fin-item" style="cursor:pointer;" onclick="editFin(${f.id})"><div><small>${f.date}</small><br><b>${f.desc}</b></div><div style="display:flex; align-items:center; gap:15px;"><span class="fin-amt ${f.type === 'income' ? 'inc' : 'exp'}">${icon} ${f.amount}</span><button class="icon-btn no-print" onclick="event.stopPropagation(); delFin(${f.id})"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join(''); document.getElementById('totalIncome').innerText = inc; document.getElementById('totalExpense').innerText = exp; document.getElementById('netBalance').innerText = inc - exp; container.innerHTML = html || `<p style="text-align:center; color:var(--text-muted);">${currentLang==='ar'?'لا توجد معاملات.':'No transactions yet.'}</p>`; }
 document.getElementById('saveFinBtn').onclick = () => { let desc = document.getElementById('finDesc').value; let amt = document.getElementById('finAmount').value; if(!desc || !amt) return; finances.push({ id: Date.now(), desc: desc, amount: amt, type: document.getElementById('finType').value, date: document.getElementById('finDate').value }); saveAll(); document.getElementById('financeModal').classList.remove('show'); renderFinance(); renderDashboard(); };
