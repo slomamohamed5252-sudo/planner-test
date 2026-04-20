@@ -363,10 +363,62 @@ window.editTask = (id) => {
     for(let i = 6; i <= 23; i++) { let opt = document.createElement('option'); opt.value = i; opt.textContent = i === 12 ? '12 PM' : (i > 12 ? `${i - 12} PM` : `${i} AM`); if(i == task.hour) opt.selected = true; hourSelect.appendChild(opt); }
     document.getElementById('editTaskModal').classList.add('show');
 };
+// التعديل الشامل لزر تحديث المهمة (مع المزامنة العكسية)
 document.getElementById('updateTaskBtn').onclick = () => {
-    let id = parseInt(document.getElementById('editTaskId').value); let title = document.getElementById('editTaskTitle').value; let dateStr = document.getElementById('editTaskDate').value; let hour = document.getElementById('editTaskHour').value;
-    if(!title) return; let task = tasks.find(t => t.id === id);
-    if(task) { let oldDate = task.date; task.title = title; task.date = dateStr; task.hour = hour; if(dateStr !== oldDate) { let [y, m, d] = dateStr.split('-'); let storageKey = `PlannerMonthData_${parseInt(y)}_${parseInt(m)-1}_${parseInt(d)}`; let currentText = localStorage.getItem(storageKey) || ""; let timeTxt = hour == 12 ? '12 PM' : (hour > 12 ? (hour-12)+' PM' : hour+' AM'); localStorage.setItem(storageKey, currentText ? currentText + '\n- ' + title + ' ('+timeTxt+')' : '- ' + title + ' ('+timeTxt+')'); } saveAll(); renderViews(); document.getElementById('editTaskModal').classList.remove('show'); }
+    let id = parseInt(document.getElementById('editTaskId').value); 
+    let title = document.getElementById('editTaskTitle').value; 
+    let dateStr = document.getElementById('editTaskDate').value;
+    let hour = document.getElementById('editTaskHour').value;
+    
+    if(!title) return; 
+    let task = tasks.find(t => t.id === id);
+    
+    if(task) { 
+        let oldDate = task.date;
+        let oldTitle = task.title; // الاحتفاظ بالعنوان القديم للبحث عنه
+
+        task.title = title; 
+        task.date = dateStr; 
+        task.hour = hour; 
+        
+        if(dateStr !== oldDate) { 
+            if (task.isMonthly) {
+                // 1. تنظيف النص من علامة الدبوس للبحث عنه
+                let cleanOldText = oldTitle.replace('📌 خطة الشهر: ', '').replace('📌 Month Plan: ', '').trim();
+                let cleanNewText = title.replace('📌 خطة الشهر: ', '').replace('📌 Month Plan: ', '').trim();
+
+                // 2. مسح المهمة من التاريخ القديم في خطة الشهر
+                let [oY, oM, oD] = oldDate.split('-');
+                let oldKey = `PlannerMonthData_${parseInt(oY)}_${parseInt(oM)-1}_${parseInt(oD)}`;
+                let oldMonthText = localStorage.getItem(oldKey) || "";
+                if (cleanOldText && oldMonthText.includes(cleanOldText)) {
+                    let newOldText = oldMonthText.replace(cleanOldText, '').trim();
+                    // تنظيف الأسطر الفارغة الإضافية إن وجدت
+                    newOldText = newOldText.replace(/^\s*[\r\n]/gm, '');
+                    localStorage.setItem(oldKey, newOldText);
+                }
+
+                // 3. إضافة المهمة إلى التاريخ الجديد في خطة الشهر
+                let [nY, nM, nD] = dateStr.split('-');
+                let newKey = `PlannerMonthData_${parseInt(nY)}_${parseInt(nM)-1}_${parseInt(nD)}`;
+                let newMonthText = localStorage.getItem(newKey) || "";
+                if (!newMonthText.includes(cleanNewText)) {
+                    localStorage.setItem(newKey, newMonthText ? newMonthText + '\n' + cleanNewText : cleanNewText);
+                }
+            } else {
+                // الترحيل للمهام العادية التي يتم تغيير تاريخها
+                let [y, m, d] = dateStr.split('-');
+                let storageKey = `PlannerMonthData_${parseInt(y)}_${parseInt(m)-1}_${parseInt(d)}`; 
+                let currentText = localStorage.getItem(storageKey) || ""; 
+                let timeTxt = hour == 12 ? '12 PM' : (hour > 12 ? (hour-12)+' PM' : hour+' AM'); 
+                localStorage.setItem(storageKey, currentText ? currentText + '\n- ' + title + ' ('+timeTxt+')' : '- ' + title + ' ('+timeTxt+')'); 
+            }
+        } 
+        
+        saveAll(); 
+        renderViews(); 
+        document.getElementById('editTaskModal').classList.remove('show'); 
+    }
 };
 
 // ----------------------------------------
@@ -482,12 +534,13 @@ function renderMonthly() {
         }; 
     }); 
 
-    // النزول التلقائي (Scroll) إلى يومنا الحالي ليكون في بداية الشاشة
+    /// النزول التلقائي (Scroll) إلى يومنا الحالي ليكون في منتصف الشاشة بدقة
     if (isCurrentMonth) {
         setTimeout(() => {
             let todayCard = document.getElementById('todayMonthCard');
             if (todayCard) {
-                todayCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // التعديل السحري هنا: استخدام center بدلاً من start
+                todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }, 300); // تأخير بسيط لضمان تحميل الشاشة
     }

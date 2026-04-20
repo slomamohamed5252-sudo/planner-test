@@ -67,5 +67,38 @@ textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var
 .recording-active { animation: pulse 1.5s infinite; background-color: #fee2e2 !important; color: #dc2626 !important; border-color: #dc2626 !important; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-5deg); } 50% { transform: translateX(5px) rotate(5deg); } 75% { transform: translateX(-5px) rotate(-5deg); } 100% { transform: translateX(0); } }
-@media screen and (max-width: 900px) { .main-container { flex-direction: column !important; width: 100%; } .sidebar { width: 100% !important; border-left: none !important; border-bottom: 1px solid var(--border-color); padding: 10px !important; position: static; } #mainNav { display: flex; flex-direction: row; overflow-x: auto; gap: 10px; scrollbar-width: none; } #mainNav::-webkit-scrollbar { display: none; } .nav-item { flex: 0 0 auto; white-space: nowrap; margin-bottom: 0; padding: 0.5rem 1rem;} .header { flex-direction: column; text-align: center; gap: 10px; padding: 1rem; } .header-actions { flex-wrap: wrap; justify-content: center; width: 100%; } .content { padding: 1rem; width: 100%; } .pomodoro-timer { font-size: 4.5rem; } }
+@media screen and (max-width: 900px) { 
+    .main-container { flex-direction: column !important; width: 100%; } 
+    
+    /* 1. جعل شريط القوائم عائماً وملتصقاً بالأعلى في الموبايل */
+    .sidebar { 
+        width: 100% !important; 
+        border-left: none !important; 
+        border-bottom: 1px solid var(--border-color); 
+        padding: 10px !important; 
+        position: sticky !important; 
+        top: 0 !important; 
+        z-index: 1000 !important; 
+        background: var(--card-bg); /* ضروري لكي لا يكون شفافاً عند النزول */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* إضافة ظل خفيف لشكل أنيق */
+    } 
+    
+    #mainNav { display: flex; flex-direction: row; overflow-x: auto; gap: 10px; scrollbar-width: none; } 
+    #mainNav::-webkit-scrollbar { display: none; } 
+    .nav-item { flex: 0 0 auto; white-space: nowrap; margin-bottom: 0; padding: 0.5rem 1rem;} 
+    
+    /* 2. إلغاء تثبيت الهيدر العلوي في الموبايل فقط لكي لا يتداخل مع القوائم */
+    .header { 
+        flex-direction: column; 
+        text-align: center; 
+        gap: 10px; 
+        padding: 1rem; 
+        position: relative !important; 
+        z-index: 1; 
+    } 
+    
+    .header-actions { flex-wrap: wrap; justify-content: center; width: 100%; } 
+    .content { padding: 1rem; width: 100%; } 
+    .pomodoro-timer { font-size: 4.5rem; } 
+}
 @media print { .no-print, .sidebar, .header-actions { display: none !important; } .content { padding: 0; } .header { position: static; border-bottom: 2px solid black;} textarea { display: none; } .render-area { border: none; padding: 0; } body { background-color: white; color: black; } .view-section { display: block !important; page-break-after: always; } }
