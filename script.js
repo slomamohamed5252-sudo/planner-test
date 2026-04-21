@@ -476,7 +476,7 @@ document.getElementById('updateLibBtn').onclick = () => {
 };
 
 // ==========================================
-// برمجة خطة الشهر (المزامنة الاحترافية مع جدول اليوم)
+// برمجة خطة الشهر (المطورة: المزامنة + دعم الاتصال والواتساب)
 // ==========================================
 function renderMonthly() { 
     const container = document.getElementById('monthlyContainer'); 
@@ -487,19 +487,22 @@ function renderMonthly() {
     const daysInMonth = new Date(currentYearView, currentMonthView + 1, 0).getDate(); 
     let dayText = currentLang === 'ar' ? 'اليوم:' : 'Day:'; 
     let placeholderText = currentLang === 'ar' ? 'اكتب خطتك (الروابط تعمل تلقائياً)' : 'Type your plan (links work automatically)'; 
+    let phonePlaceholder = currentLang === 'ar' ? 'رقم الهاتف...' : 'Phone...';
     
-    // اكتشاف تاريخ اليوم الواقعي لتمييزه
     const todayObj = new Date();
     const isCurrentMonth = (todayObj.getMonth() === currentMonthView && todayObj.getFullYear() === currentYearView);
     const todayDate = todayObj.getDate();
 
     for(let i = 1; i <= daysInMonth; i++) { 
         let storageKey = `PlannerMonthData_${currentYearView}_${currentMonthView}_${i}`; 
+        let phoneKey = storageKey + '_phone'; 
+        
         let savedText = localStorage.getItem(storageKey) || ""; 
+        let savedPhone = localStorage.getItem(phoneKey) || "";
+        
         const dayDiv = document.createElement('div'); 
         dayDiv.className = 'month-day-card'; 
         
-        // تمييز كارت اليوم الحالي وإعطاؤه ID للنزول إليه
         if (isCurrentMonth && i === todayDate) {
             dayDiv.id = 'todayMonthCard';
             dayDiv.style.border = '2px solid var(--primary)';
@@ -507,12 +510,32 @@ function renderMonthly() {
 
         let isTodayText = (isCurrentMonth && i === todayDate) ? (currentLang === 'ar' ? '(اليوم)' : '(Today)') : '';
 
-        dayDiv.innerHTML = `<div class="month-day-header"><span>${dayText} ${i} ${mNames[currentMonthView]} <b style="color:var(--primary);">${isTodayText}</b></span></div><textarea class="multi-line-input no-print" rows="3" data-key="${storageKey}" data-day="${i}" placeholder="${placeholderText}">${savedText}</textarea><div class="render-area">${linkify(savedText)}</div>`; 
+        // نظام أيقونات الاتصال والواتساب
+        let contactIcons = savedPhone ? `
+            <div style="display:inline-flex; gap:10px; margin-right:10px;">
+                <a href="tel:${savedPhone}" class="no-print" style="color:var(--primary); font-size:1.1rem;"><i class="fa-solid fa-phone"></i></a>
+                <a href="https://wa.me/${savedPhone.replace(/\+/g,'')}" target="_blank" class="no-print" style="color:#25D366; font-size:1.1rem;"><i class="fa-brands fa-whatsapp"></i></a>
+            </div>` : '';
+
+        dayDiv.innerHTML = `
+            <div class="month-day-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${dayText} ${i} ${mNames[currentMonthView]} <b style="color:var(--primary);">${isTodayText}</b></span>
+                ${contactIcons}
+            </div>
+            <textarea class="multi-line-input no-print" rows="3" data-key="${storageKey}" data-day="${i}" placeholder="${placeholderText}">${savedText}</textarea>
+            <input type="tel" class="no-print" value="${savedPhone}" data-phone-key="${phoneKey}" placeholder="${phonePlaceholder}" 
+                style="width:100%; margin-top:5px; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-size:0.85rem;">
+            <div class="render-area">${linkify(savedText)}</div>`; 
+            
         container.appendChild(dayDiv); 
     } 
     
+    // ربط أحداث الكتابة في الخطة
     document.querySelectorAll('.multi-line-input').forEach(ta => { 
-        ta.oninput = e => { e.target.nextElementSibling.innerHTML = linkify(e.target.value); }; 
+        ta.oninput = e => { 
+            // التعديل هنا للوصول لمنطقة العرض بشكل صحيح بعد إضافة خانة الهاتف
+            e.target.nextElementSibling.nextElementSibling.innerHTML = linkify(e.target.value); 
+        }; 
         ta.onchange = e => { 
             let newText = e.target.value;
             localStorage.setItem(e.target.dataset.key, newText); 
@@ -529,36 +552,29 @@ function renderMonthly() {
             } else {
                 let taskLabel = (currentLang === 'ar' ? '📌 خطة الشهر: ' : '📌 Month Plan: ') + newText.trim();
                 if (existingTaskIndex !== -1) {
-                    // التعديل: استخدام title لتتوافق مع جدول اليوم
                     tasks[existingTaskIndex].title = taskLabel;
                 } else {
-                    tasks.push({
-                        id: Date.now(),
-                        title: taskLabel, // التعديل: استخدام title
-                        date: targetDateStr,
-                        hour: 6, // التعديل: استخدام hour ورقم 6
-                        completed: false,
-                        isMonthly: true 
-                    });
+                    tasks.push({ id: Date.now(), title: taskLabel, date: targetDateStr, hour: 6, completed: false, isMonthly: true });
                 }
             }
-
             saveAll(); 
-            if (typeof currentDailyDate !== 'undefined' && currentDailyDate === targetDateStr && typeof renderDaily === 'function') {
-                renderDaily();
-            }
+            if (typeof currentDailyDate !== 'undefined' && currentDailyDate === targetDateStr && typeof renderDaily === 'function') renderDaily();
         }; 
     }); 
 
-    /// النزول التلقائي (Scroll) إلى يومنا الحالي ليكون في منتصف الشاشة بدقة
+    // ربط أحداث إدخال الهاتف
+    document.querySelectorAll('input[data-phone-key]').forEach(inp => {
+        inp.onchange = e => {
+            localStorage.setItem(e.target.dataset.phoneKey, e.target.value);
+            renderMonthly(); // تحديث فوري لإظهار الأيقونات
+        };
+    });
+
     if (isCurrentMonth) {
         setTimeout(() => {
             let todayCard = document.getElementById('todayMonthCard');
-            if (todayCard) {
-                // التعديل السحري هنا: استخدام center بدلاً من start
-                todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 300); // تأخير بسيط لضمان تحميل الشاشة
+            if (todayCard) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
     }
 }
 
