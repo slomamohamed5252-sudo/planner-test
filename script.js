@@ -1,4 +1,18 @@
-// 1. PWA & Update Notification
+// 1. سجل التحديثات (اكتب تحديثاتك هنا في كل إصدار جديد)
+const latestReleaseNotes = {
+    ar: [
+        "تفعيل الروابط التلقائية في الملاحظات والمراجع.",
+        "إضافة أيقونات الاتصال السريع والواتساب.",
+        "تطوير خطة الشهر وإضافة حفظ أرقام الهواتف."
+    ],
+    en: [
+        "Enabled clickable links in Notes & Library.",
+        "Added quick call and WhatsApp icons.",
+        "Upgraded Monthly Plan with phone number saving."
+    ]
+};
+
+// 2. PWA & Update Notification
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const installBtn = document.getElementById('installAppBtn'); if(installBtn) installBtn.style.display = 'inline-flex'; });
 
@@ -11,7 +25,13 @@ if ('serviceWorker' in navigator) {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     const toast = document.getElementById('updateToast');
                     if(toast) {
-                        toast.style.display = 'block'; // السر هنا: إظهار النافذة بشكل مرئي
+                        // جلب التحديثات حسب لغة المستخدم الحالية وحقنها في الـ HTML
+                        const notesTitle = currentLang === 'ar' ? '<strong>الجديد في هذا الإصدار:</strong><br>' : '<strong>What\'s new in this version:</strong><br>';
+                        const notesList = latestReleaseNotes[currentLang].map(note => `- ${note}`).join('<br>');
+                        
+                        document.getElementById('updateMessageList').innerHTML = notesTitle + notesList;
+                        
+                        toast.style.display = 'block'; 
                         toast.classList.add('show');
                     }
                 }
@@ -21,7 +41,6 @@ if ('serviceWorker' in navigator) {
     
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // التعديل هنا: إضافة true لعمل تحديث إجباري ومسح الكاش القديم
         if (!refreshing) { window.location.reload(true); refreshing = true; }
     });
 }
