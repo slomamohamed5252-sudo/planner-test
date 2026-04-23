@@ -866,4 +866,3 @@ if(manualUpBtn) {
             manualUpBtn.innerHTML = originalHtml;
         }
     };
-}
