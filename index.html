@@ -190,11 +190,12 @@
                         <input type="file" id="restoreFile" style="display:none;">
                     </div>
                     
-                    <hr style="margin: 20px 0;">
+                    <hr style="margin: 25px 0; border-color: var(--border-color);">
+                    
                     <h3 data-i18n="title_update_log">سجل التحديثات 🔄</h3>
-                    <div id="changelogContainer" style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px dashed var(--primary); margin-bottom:15px; font-size:0.9rem; line-height:1.6; max-height: 150px; overflow-y: auto;">
+                    <div id="changelogContainer" style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px dashed var(--primary); margin-top:10px; margin-bottom:15px; font-size:0.9rem; line-height:1.6; max-height: 180px; overflow-y: auto;">
                         </div>
-                    <button id="manualUpdateBtn" class="btn btn-primary no-print" style="width: 100%;"><i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="btn_check_update">البحث عن تحديث / تنشيط التطبيق</span></button>
+                    <button id="manualUpdateBtn" class="btn btn-primary no-print" style="width: 100%; padding: 10px;"><i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="btn_check_update">البحث عن تحديث / تنشيط التطبيق</span></button>
 
                 </div>
             </div>
@@ -248,17 +249,17 @@
     </div>
 </div>
 
-<div id="updateToast" class="update-toast" style="display: none; padding: 15px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 9999;">
-        <div>
-            <strong data-i18n="update_title" style="color: var(--primary); display:block; margin-bottom:5px; font-size: 1.1rem;">تحديث جديد متاح! ✨</strong>
-            <span id="updateMessageList" style="font-size:0.9rem; color: var(--text-main); display:block; margin-bottom: 10px; line-height: 1.5;">
-                </span>
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button id="reloadAppBtn" class="btn btn-primary" style="flex:1;">تحديث الآن</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('updateToast').style.display='none';" style="flex:1;">ليس الآن</button>
-        </div>
+<div id="updateToast" class="update-toast" style="display: none; padding: 20px; border-radius: 16px; background: var(--card-bg); border: 2px solid var(--primary); box-shadow: 0 15px 40px rgba(0,0,0,0.3); z-index: 99999; flex-direction: column; width: 90%; max-width: 400px; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);">
+    <div style="width: 100%;">
+        <strong data-i18n="update_title" style="color: var(--primary); display:block; margin-bottom:10px; font-size: 1.2rem; text-align: center;">تحديث جديد متاح! ✨</strong>
+        <span id="updateMessageList" style="font-size:0.95rem; color: var(--text-main); display:block; margin-bottom: 20px; line-height: 1.6; text-align: right;">
+            </span>
     </div>
+    <div style="display: flex; gap: 12px; width: 100%;">
+        <button id="reloadAppBtn" class="btn btn-primary" style="flex:1; padding: 10px; font-weight: bold; font-size: 1rem;">تحديث الآن</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('updateToast').style.display='none';" style="flex:1; padding: 10px; font-size: 1rem;">ليس الآن</button>
+    </div>
+</div>
 
 <script src="script.js"></script>
 </body>
