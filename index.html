@@ -183,13 +183,19 @@
                     <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;" data-i18n="sync_desc">عند تسجيل الخروج سيتم مسح بياناتك من هذا الجهاز لضمان السرية، وستبقى آمنة في حسابك.</p>
                     <div id="cloudStatus" style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;"></div>
 
-                    <hr style="margin: 20px 0;">
                     <h3 data-i18n="title_backup">النسخ الاحتياطي اليدوي</h3>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
                         <button id="backupBtn" class="btn btn-secondary" style="flex:1;"><span data-i18n="btn_download">تنزيل البيانات</span></button>
                         <label for="restoreFile" class="btn btn-secondary" style="flex:1; cursor:pointer; text-align:center;"><span data-i18n="btn_restore">استرجاع ملف</span></label>
                         <input type="file" id="restoreFile" style="display:none;">
                     </div>
+                    
+                    <hr style="margin: 20px 0;">
+                    <h3 data-i18n="title_update_log">سجل التحديثات 🔄</h3>
+                    <div id="changelogContainer" style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px dashed var(--primary); margin-bottom:15px; font-size:0.9rem; line-height:1.6; max-height: 150px; overflow-y: auto;">
+                        </div>
+                    <button id="manualUpdateBtn" class="btn btn-primary no-print" style="width: 100%;"><i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="btn_check_update">البحث عن تحديث / تنشيط التطبيق</span></button>
+
                 </div>
             </div>
         </main>

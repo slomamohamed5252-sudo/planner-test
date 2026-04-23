@@ -99,6 +99,8 @@ const i18n = {
         title_sync: "المزامنة السحابية الحية ☁️", sync_desc: "عند تسجيل الخروج سيتم مسح بياناتك من هذا الجهاز لضمان السرية، وستبقى آمنة في حسابك.",
         title_backup: "النسخ الاحتياطي اليدوي", btn_download: "تنزيل البيانات", btn_restore: "استرجاع ملف",
         chart_done: "مكتملة", chart_pend: "غير مكتملة", btn_cancel: "إلغاء", btn_save: "حفظ", title_login: "تسجيل الدخول للمزامنة"
+        title_update_log: "سجل التحديثات 🔄",
+        btn_check_update: "البحث عن تحديث / تنشيط التطبيق",
     },
     en: {
         nav_dash: "Dashboard", nav_month: "Monthly Plan", nav_today: "Today", nav_pomodoro: "Focus Timer", nav_kanban: "Projects", nav_habits: "Habit Tracker", nav_finance: "Finance", nav_lib: "Library", nav_notes: "Notes", nav_settings: "Settings & Sync",
@@ -118,6 +120,8 @@ const i18n = {
         title_sync: "Live Cloud Sync ☁️", sync_desc: "Logging out will securely wipe data from this device. It remains safe in your cloud account.",
         title_backup: "Manual Backup", btn_download: "Download Data", btn_restore: "Restore File",
         chart_done: "Completed", chart_pend: "Pending", btn_cancel: "Cancel", btn_save: "Save", title_login: "Login to Sync"
+        title_update_log: "Update Log 🔄",
+        btn_check_update: "Check for Updates / Refresh App",
     }
 };
 
@@ -129,7 +133,7 @@ function setLanguage(lang) {
     const toggleBtn = document.getElementById('langLabel'); if(toggleBtn) toggleBtn.innerHTML = lang === 'ar' ? 'EN' : 'AR';
     const kbInp = document.getElementById('newKbItem'); if(kbInp) kbInp.placeholder = lang === 'ar' ? 'اكتب اسم المشروع / المهمة هنا... (اضغط Enter لسطر جديد)' : 'Type project name... (Press Enter for new line)';
     const hbInp = document.getElementById('newHabitInput'); if(hbInp) hbInp.placeholder = lang === 'ar' ? 'عادة جديدة...' : 'New habit...';
-    renderViews(); 
+    function renderViews() { renderDashboard(); renderMonthly(); renderDaily(); renderKanban(); renderHabits(); renderFinance(); renderLibrary(); renderNotes(); renderChangelog(); 
 }
 
 function initColorTheme() {
@@ -822,3 +826,44 @@ window.changeFontSize = (size) => {
     document.documentElement.style.fontSize = size;
     localStorage.setItem('plannerFontSize', size);
 };
+
+// ==========================================
+// برمجة سجل التحديثات والبحث اليدوي
+// ==========================================
+window.renderChangelog = () => {
+    const container = document.getElementById('changelogContainer');
+    if(!container) return;
+    const notesTitle = currentLang === 'ar' ? '<strong style="color:var(--primary);">ميزات الإصدار الأخير:</strong><br>' : '<strong style="color:var(--primary);">Latest Version Features:</strong><br>';
+    const notesList = latestReleaseNotes[currentLang].map(note => `- ${note}`).join('<br>');
+    container.innerHTML = notesTitle + notesList;
+};
+
+const manualUpBtn = document.getElementById('manualUpdateBtn');
+if(manualUpBtn) {
+    manualUpBtn.onclick = () => {
+        const originalHtml = manualUpBtn.innerHTML;
+        manualUpBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (currentLang === 'ar' ? 'جاري البحث...' : 'Checking...');
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then(reg => {
+                if (reg) {
+                    reg.update().then(() => {
+                        if (reg.waiting) {
+                            // إذا كان هناك تحديث تم تأجيله، قم بتفعيله الآن
+                            reg.waiting.postMessage({ action: 'skipWaiting' });
+                        } else {
+                            setTimeout(() => {
+                                alert(currentLang === 'ar' ? 'أنت تستخدم أحدث نسخة بالفعل!' : 'You are already on the latest version!');
+                                manualUpBtn.innerHTML = originalHtml;
+                            }, 800);
+                        }
+                    });
+                } else {
+                    manualUpBtn.innerHTML = originalHtml;
+                }
+            });
+        } else {
+            manualUpBtn.innerHTML = originalHtml;
+        }
+    };
+}

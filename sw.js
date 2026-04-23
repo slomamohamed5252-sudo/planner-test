@@ -1,5 +1,5 @@
-// قمنا بتغيير رقم الإصدار إلى v5 لإجبار الكمبيوتر والموبايل على التحديث
-const CACHE_NAME = 'planner-pro-v5';
+// قمنا بتغيير رقم الإصدار إلى v6 لإجبار الكمبيوتر والموبايل على التحديث
+const CACHE_NAME = 'planner-pro-v6';
 const assets = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const assets = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
+  // تم مسح أمر التحديث الإجباري من هنا لكي يعطي المستخدم فرصة لقراءة الإشعار
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(assets);
