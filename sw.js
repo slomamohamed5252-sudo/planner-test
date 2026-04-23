@@ -1,5 +1,5 @@
-// قمنا بتغيير رقم الإصدار إلى v8 لإجبار الكمبيوتر والموبايل على التحديث
-const CACHE_NAME = 'planner-pro-v8';
+// قمنا بتغيير رقم الإصدار إلى v7 لإجبار الكمبيوتر والموبايل على التحديث
+const CACHE_NAME = 'planner-pro-v7';
 const assets = [
   './',
   './index.html',

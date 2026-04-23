@@ -100,7 +100,7 @@ const i18n = {
         title_backup: "النسخ الاحتياطي اليدوي", btn_download: "تنزيل البيانات", btn_restore: "استرجاع ملف",
         chart_done: "مكتملة", chart_pend: "غير مكتملة", btn_cancel: "إلغاء", btn_save: "حفظ", title_login: "تسجيل الدخول للمزامنة",
         title_update_log: "سجل التحديثات 🔄",
-        btn_check_update: "البحث عن تحديث / تنشيط التطبيق",
+        btn_check_update: "البحث عن تحديث / تنشيط التطبيق"
     },
     en: {
         nav_dash: "Dashboard", nav_month: "Monthly Plan", nav_today: "Today", nav_pomodoro: "Focus Timer", nav_kanban: "Projects", nav_habits: "Habit Tracker", nav_finance: "Finance", nav_lib: "Library", nav_notes: "Notes", nav_settings: "Settings & Sync",
@@ -121,7 +121,7 @@ const i18n = {
         title_backup: "Manual Backup", btn_download: "Download Data", btn_restore: "Restore File",
         chart_done: "Completed", chart_pend: "Pending", btn_cancel: "Cancel", btn_save: "Save", title_login: "Login to Sync",
         title_update_log: "Update Log 🔄",
-        btn_check_update: "Check for Updates / Refresh App",
+        btn_check_update: "Check for Updates / Refresh App"
     }
 };
 
