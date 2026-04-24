@@ -133,7 +133,6 @@ function setLanguage(lang) {
     const toggleBtn = document.getElementById('langLabel'); if(toggleBtn) toggleBtn.innerHTML = lang === 'ar' ? 'EN' : 'AR';
     const kbInp = document.getElementById('newKbItem'); if(kbInp) kbInp.placeholder = lang === 'ar' ? 'اكتب اسم المشروع / المهمة هنا... (اضغط Enter لسطر جديد)' : 'Type project name... (Press Enter for new line)';
     const hbInp = document.getElementById('newHabitInput'); if(hbInp) hbInp.placeholder = lang === 'ar' ? 'عادة جديدة...' : 'New habit...';
-    function renderViews() { renderDashboard(); renderMonthly(); renderDaily(); renderKanban(); renderHabits(); renderFinance(); renderLibrary(); renderNotes(); if(typeof renderChangelog === 'function') renderChangelog(); 
 }
 
 function initColorTheme() {
@@ -357,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPomodoro(); renderViews();
 });
 
-function renderViews() { renderDashboard(); renderMonthly(); renderDaily(); renderKanban(); renderHabits(); renderFinance(); renderLibrary(); renderNotes(); }
+function renderViews() { renderDashboard(); renderMonthly(); renderDaily(); renderKanban(); renderHabits(); renderFinance(); renderLibrary(); renderNotes(); if(typeof renderChangelog === 'function') renderChangelog(); }
 
 function renderDaily() { 
     const container = document.getElementById('plannerContainer'); container.innerHTML = ''; 
